@@ -13,6 +13,8 @@ namespace TruckTransmissionGenerator {
             return (ConsoleColor)new Random().Next(1,15);
         }
         static void Main(string[] args) {
+            Console.Title = "TruckTransmissionGenerator";
+
             string jsonFile;
 
             // check if jsonFile has been passed as argument, if not ask for input
