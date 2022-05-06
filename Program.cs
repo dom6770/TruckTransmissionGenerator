@@ -21,8 +21,10 @@ namespace TruckTransmissionGenerator {
             if(args.Length == 0) {
                 Console.WriteLine("Please specify json location");
                 Console.Write("Input: ");
-                while(string.IsNullOrWhiteSpace(jsonFile = Console.ReadLine().Replace("\"","")))
+                while(string.IsNullOrWhiteSpace(jsonFile = Console.ReadLine().Replace("\"",""))) {
+                    Console.SetCursorPosition(0,Console.CursorTop - 1);
                     Console.Write("Input: ");
+                }
             } else {
                 Console.WriteLine(args[0] + "\n");
                 jsonFile = args[0];
@@ -34,8 +36,11 @@ namespace TruckTransmissionGenerator {
                 Console.ResetColor();
 
                 Console.Write("Input: ");
-                while(string.IsNullOrWhiteSpace(jsonFile = Console.ReadLine().Replace("\"","")))
+                while(string.IsNullOrWhiteSpace(jsonFile = Console.ReadLine().Replace("\"",""))) {
+                    Console.SetCursorPosition(0,Console.CursorTop - 1);
                     Console.Write("Input: ");
+                }
+                    
             }
 
             Console.WriteLine("\u2713 Valid JSON File");
