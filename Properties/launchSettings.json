@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "TruckTransmissionGenerator": {
-      "commandName": "Project",
-      "commandLineArgs": "\"C:\\Users\\Dominik\\OneDrive - Dominik Pflegerl\\Projects\\Game Mods\\SCS Truck Simulator\\_TruckTransmissionGenerator\\ats_doms-allison-transmissions.json\""
-    }
-  }
-}
