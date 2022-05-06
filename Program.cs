@@ -26,10 +26,21 @@ public class TruckTransmissionGenerator {
         string[] transmissionsFiles;
 
         try {
+            Console.WriteLine("setting templateFolder variable...");
             templateFolder = jsonData?.templateFolder;
+            Console.WriteLine("getting transmission templates");
             transmissionsFiles = Directory.GetFiles(templateFolder,"*.sii");
 
+            Console.WriteLine("setting outputFolder variable");
             outputFolder = jsonData?.outputFolder;
+
+
+            if(Directory.Exists(outputFolder + "/def")) {
+                Directory.Delete(outputFolder + "/def",true);
+                Console.WriteLine("Folder deleted.");
+            }
+
+            Console.Read();
 
             foreach(var truck in jsonData?.trucks) {
                 foreach(var transmission in jsonData?.transmissions) {
@@ -63,7 +74,6 @@ public class TruckTransmissionGenerator {
 
         }
         catch(Exception e) {
-            Console.WriteLine("FATAL - Please set a valid path for 'templateFolder' and 'outputFolder' in your .json!");
             Console.WriteLine(e.Message);
             Console.WriteLine(e.StackTrace);
         }
