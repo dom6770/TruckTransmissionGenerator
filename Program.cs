@@ -2,21 +2,10 @@
 
 namespace TruckTransmissionGenerator {
     public class TruckTransmissionGenerator {
-        private static Random _random = new Random();
-        private static ConsoleColor GetRandomConsoleColor() {
-            var consoleColors = Enum.GetValues(typeof(ConsoleColor));
-            string[] c = new string[] { "ConsoleColor.DarkGreen","ConsoleColor.DarkRed" };
+        static string jsonFile = "";
+        static dynamic jsonData = "";
 
-            return (ConsoleColor)consoleColors.GetValue(_random.Next(consoleColors.Length));
-        }
-        public static ConsoleColor RandomConsoleColor() {
-            return (ConsoleColor)new Random().Next(1,15);
-        }
-        static void Main(string[] args) {
-            Console.Title = "TruckTransmissionGenerator";
-
-            string jsonFile;
-
+        static void GetJsonFile(string[] args) {
             // check if jsonFile has been passed as argument, if not ask for input
             if(args.Length == 0) {
                 Console.WriteLine("Please specify json location");
@@ -30,9 +19,10 @@ namespace TruckTransmissionGenerator {
                 jsonFile = args[0];
             }
 
+            // check if jsonFile exists, if not ask for new input
             while(!File.Exists(jsonFile)) {
                 Console.BackgroundColor = ConsoleColor.DarkRed; Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("File does not exist!. Please enter valid json file");
+                Console.WriteLine("File does not exist! Please enter valid json file");
                 Console.ResetColor();
 
                 Console.Write("Input: ");
@@ -40,17 +30,23 @@ namespace TruckTransmissionGenerator {
                     Console.SetCursorPosition(0,Console.CursorTop - 1);
                     Console.Write("Input: ");
                 }
-                    
             }
-
             Console.WriteLine("\u2713 Valid JSON File");
+        }
 
-            // read json file
+        static void GetJsonData() {
             StreamReader r = new StreamReader(jsonFile);
             string jsonString = r.ReadToEnd();
-            dynamic jsonData = JsonConvert.DeserializeObject(jsonString);
+            jsonData = JsonConvert.DeserializeObject(jsonString);
 
             if(jsonString == null || jsonData == null) { Environment.Exit(1); }
+        }
+
+        static void Main(string[] args) {
+            Console.Title = "TruckTransmissionGenerator";
+
+            GetJsonFile(args);
+            GetJsonData();
 
             // set necessary variables
             string templateFolder;
@@ -72,13 +68,6 @@ namespace TruckTransmissionGenerator {
                 Console.WriteLine("setting outputFolder variable...");
                 outputFolder = jsonData.outputFolder;
 
-
-                if(Directory.Exists(outputFolder + "/def")) {
-                    Directory.Delete(outputFolder + "/def",true);
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("\nFolder deleted!");
-                }
-
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
                 Console.WriteLine("\n---------");
                 Console.WriteLine("Found " + jsonData.trucks.Count + " trucks");
@@ -89,6 +78,12 @@ namespace TruckTransmissionGenerator {
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine("Press any key to continue...");
                 Console.Read();
+
+                if(Directory.Exists(outputFolder + "/def")) {
+                    Directory.Delete(outputFolder + "/def",true);
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine("Folder deleted!\n");
+                }
 
                 foreach(var truck in jsonData.trucks) {
                     foreach(var transmission in jsonData.transmissions) {
@@ -122,7 +117,7 @@ namespace TruckTransmissionGenerator {
                         Console.Write("\n");
                     }
                     Console.Write("\n");
-                    Console.ForegroundColor = RandomConsoleColor();
+                    Console.ForegroundColor = Output.RandomConsoleColor();
                 }
                 var totalCount = jsonData.trucks.Count * jsonData.transmissions.Count * jsonData.differential_ratios.Count;
                 Console.ForegroundColor = ConsoleColor.DarkRed;
@@ -136,6 +131,23 @@ namespace TruckTransmissionGenerator {
                 Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
             }
+            finally {
+                Environment.Exit(0);
+            }
+    }
+
+    class Output {
+        private static Random _random = new Random();
+        private static ConsoleColor GetRandomConsoleColor() {
+            var consoleColors = Enum.GetValues(typeof(ConsoleColor));
+            string[] c = new string[] { "ConsoleColor.DarkGreen","ConsoleColor.DarkRed" };
+
+            return (ConsoleColor)consoleColors.GetValue(_random.Next(consoleColors.Length));
         }
+        public static ConsoleColor RandomConsoleColor() {
+            return (ConsoleColor)new Random().Next(1,15);
+        }
+
+        
     }
 }
