@@ -4,6 +4,9 @@ namespace TruckTransmissionGenerator {
     public class TruckTransmissionGenerator {
         static string jsonFile = "";
         static dynamic jsonData = "";
+        static string templateFolder;
+        static string outputFolder;
+        static string[] transmissionsFiles;
 
         static void GetJsonFile(string[] args) {
             // check if jsonFile has been passed as argument, if not ask for input
@@ -41,49 +44,43 @@ namespace TruckTransmissionGenerator {
 
             if(jsonString == null || jsonData == null) { Environment.Exit(1); }
         }
+        static void DeleteExistingFiles() {
+            if(Directory.Exists(outputFolder + "/def")) {
+                Directory.Delete(outputFolder + "/def",true);
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine("Folder deleted!\n");
+            }
+        }
+        static void SetVariablesFromJson() {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("setting templateFolder variable...");
+            templateFolder = jsonData.templateFolder;
+            Console.WriteLine("getting transmission templates...");
+            transmissionsFiles = Directory.GetFiles(templateFolder,"*.sii");
+
+            Console.WriteLine("setting outputFolder variable...");
+            outputFolder = jsonData.outputFolder;
+        }
+
+        static void PressAnyKeyTo(string keyword, ConsoleColor color) {
+            Console.ForegroundColor = color;
+            Console.WriteLine($"Press any key to {keyword}...");
+            Console.ReadKey();
+        }
 
         static void Main(string[] args) {
             Console.Title = "TruckTransmissionGenerator";
 
             GetJsonFile(args);
-            GetJsonData();
-
-            // set necessary variables
-            string templateFolder;
-            string outputFolder;
-            string[] transmissionsFiles;
+            GetJsonData();            
 
             try {
-                Console.ResetColor();
-                Console.BackgroundColor = ConsoleColor.DarkRed; Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine($"\n {jsonData.game} \n");
-                Console.ResetColor();
+                Output o = new Output();
 
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine("setting templateFolder variable...");
-                templateFolder = jsonData.templateFolder;
-                Console.WriteLine("getting transmission templates...");
-                transmissionsFiles = Directory.GetFiles(templateFolder,"*.sii");
-
-                Console.WriteLine("setting outputFolder variable...");
-                outputFolder = jsonData.outputFolder;
-
-                Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.WriteLine("\n---------");
-                Console.WriteLine("Found " + jsonData.trucks.Count + " trucks");
-                Console.WriteLine("Found " + jsonData.transmissions.Count + " transmissions");
-                Console.WriteLine("Found " + jsonData.differential_ratios.Count + " differential ratios");
-                Console.WriteLine("---------\n");
-
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("Press any key to continue...");
-                Console.Read();
-
-                if(Directory.Exists(outputFolder + "/def")) {
-                    Directory.Delete(outputFolder + "/def",true);
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("Folder deleted!\n");
-                }
+                o.WriteGameTitel();
+                SetVariablesFromJson();
+                o.WriteDataFound();
+                PressAnyKeyTo("continue",ConsoleColor.White);                
 
                 foreach(var truck in jsonData.trucks) {
                     foreach(var transmission in jsonData.transmissions) {
@@ -124,8 +121,7 @@ namespace TruckTransmissionGenerator {
                 Console.WriteLine($"\nFinished! (Total: {totalCount})\n");
                 Console.ForegroundColor = ConsoleColor.White;
 
-                Console.WriteLine("Press any key to exit..");
-                Console.ReadKey();
+                PressAnyKeyTo("exit",ConsoleColor.DarkGreen);
             }
             catch(Exception e) {
                 Console.WriteLine(e.Message);
@@ -134,20 +130,33 @@ namespace TruckTransmissionGenerator {
             finally {
                 Environment.Exit(0);
             }
-    }
-
-    class Output {
-        private static Random _random = new Random();
-        private static ConsoleColor GetRandomConsoleColor() {
-            var consoleColors = Enum.GetValues(typeof(ConsoleColor));
-            string[] c = new string[] { "ConsoleColor.DarkGreen","ConsoleColor.DarkRed" };
-
-            return (ConsoleColor)consoleColors.GetValue(_random.Next(consoleColors.Length));
-        }
-        public static ConsoleColor RandomConsoleColor() {
-            return (ConsoleColor)new Random().Next(1,15);
         }
 
-        
+        public class Output {
+            private static Random _random = new Random();
+            private static ConsoleColor GetRandomConsoleColor() {
+                var consoleColors = Enum.GetValues(typeof(ConsoleColor));
+                string[] c = new string[] { "ConsoleColor.DarkGreen","ConsoleColor.DarkRed" };
+
+                return (ConsoleColor)consoleColors.GetValue(_random.Next(consoleColors.Length));
+            }
+            public static ConsoleColor RandomConsoleColor() {
+                return (ConsoleColor)new Random().Next(1,15);
+            }
+            public void WriteGameTitel() {
+                Console.ResetColor();
+                Console.BackgroundColor = ConsoleColor.DarkRed; Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine($"\n {jsonData.game} \n");
+                Console.ResetColor();
+            }
+            public void WriteDataFound() {
+                Console.ForegroundColor = ConsoleColor.DarkGreen;
+                Console.WriteLine("\n---------");
+                Console.WriteLine("Found " + jsonData.trucks.Count + " trucks");
+                Console.WriteLine("Found " + jsonData.transmissions.Count + " transmissions");
+                Console.WriteLine("Found " + jsonData.differential_ratios.Count + " differential ratios");
+                Console.WriteLine("---------\n");
+            }
+        }
     }
 }
