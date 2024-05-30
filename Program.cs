@@ -1,16 +1,13 @@
 ﻿using Newtonsoft.Json;
 
 namespace TruckTransmissionGenerator {
-    public class TruckTransmissionGenerator {
-        static string jsonFile = "";
-        static dynamic jsonData = "";
-        static string templateFolder;
-        static string outputFolder;
-        static string[] transmissionsFiles;
-
-        static void GetJsonFile(string[] args) {
+    // TODO
+    // - add check for empty string in json (f.ex. empty truck in array)
+    // - add default json location
+    class TruckTransmissionGenerator {
+        static string VerifyJsonFile(string? jsonFile) {
             // check if jsonFile has been passed as argument, if not ask for input
-            if(args.Length == 0) {
+            if(jsonFile == null) {
                 Console.WriteLine("Please specify json location");
                 Console.Write("Input: ");
                 while(string.IsNullOrWhiteSpace(jsonFile = Console.ReadLine().Replace("\"",""))) {
@@ -18,8 +15,7 @@ namespace TruckTransmissionGenerator {
                     Console.Write("Input: ");
                 }
             } else {
-                Console.WriteLine(args[0] + "\n");
-                jsonFile = args[0];
+                Console.WriteLine(jsonFile + "\n");
             }
 
             // check if jsonFile exists, if not ask for new input
@@ -35,77 +31,102 @@ namespace TruckTransmissionGenerator {
                 }
             }
             Console.WriteLine("\u2713 Valid JSON File");
+            return jsonFile;
         }
+        static dynamic GetJsonData(string jsonFile) {
+            string jsonString = new StreamReader(jsonFile).ReadToEnd();
+            dynamic? jsonData = JsonConvert.DeserializeObject(jsonString);
+            if(jsonFile == null || jsonString.Length == 0) {
+                Console.WriteLine("JSON File is empty. Please try again");
+                Environment.Exit(1);
+            }
 
-        static void GetJsonData() {
-            StreamReader r = new StreamReader(jsonFile);
-            string jsonString = r.ReadToEnd();
-            jsonData = JsonConvert.DeserializeObject(jsonString);
-
-            if(jsonString == null || jsonData == null) { Environment.Exit(1); }
+            return jsonData;
         }
-        static void DeleteExistingFiles() {
-            if(Directory.Exists(outputFolder + "/def")) {
-                Directory.Delete(outputFolder + "/def",true);
-                Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.WriteLine("Folder deleted!\n");
+        static void SetData(Data data) {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("Receiving data from input...");
+            try {
+
+                Console.WriteLine("... JSON data received");
+                data.TemplateFolder = data.JsonData.templateFolder;
+                data.TransmissionsFiles = Directory.GetFiles(data.TemplateFolder,"*.sii");
+                Console.WriteLine("... Transmission Templates received");
+                data.OutputFolder = data.JsonData.outputFolder;
+                Console.WriteLine("... Output directory set");
+                Console.ResetColor();
+            }
+            catch(Exception e) {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
             }
         }
-        static void SetVariablesFromJson() {
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine("setting templateFolder variable...");
-            templateFolder = jsonData.templateFolder;
-            Console.WriteLine("getting transmission templates...");
-            transmissionsFiles = Directory.GetFiles(templateFolder,"*.sii");
-
-            Console.WriteLine("setting outputFolder variable...");
-            outputFolder = jsonData.outputFolder;
+        static void DeleteExistingFiles(string directory) {
+            if(Directory.Exists(directory + "/def")) {
+                Directory.Delete(directory + "/def",true);
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine("\nExisting directory deleted!\n");
+                Console.ResetColor();
+            }
         }
-
         static void PressAnyKeyTo(string keyword, ConsoleColor color) {
             Console.ForegroundColor = color;
             Console.WriteLine($"Press any key to {keyword}...");
+            Console.ResetColor();
             Console.ReadKey();
         }
+        static string ModifySiiFile(string siiFile, dynamic truck, dynamic transmission, dynamic differential_ratio) {
+            siiFile = siiFile.Replace("@name",transmission.name.ToString());
+            siiFile = siiFile.Replace("@differential_ratio_name",differential_ratio.ToString().Replace(".",""));
+            siiFile = siiFile.Replace("@truck",truck.ToString());
+            siiFile = siiFile.Replace("@displayName",$"\"{transmission.displayName.ToString()}\"");
+            siiFile = siiFile.Replace("@price",transmission.price.ToString());
+            siiFile = siiFile.Replace("@unlock",transmission.unlock.ToString());
+            siiFile = siiFile.Replace("@differential_ratio",differential_ratio.ToString());
 
+            return siiFile;
+        }
         static void Main(string[] args) {
             Console.Title = "TruckTransmissionGenerator";
 
-            GetJsonFile(args);
-            GetJsonData();            
+            Data data = new();
+            data.JsonFile = VerifyJsonFile(args[0]);
+            data.JsonData = GetJsonData(data.JsonFile);
+            
+            
+            // DEBUG
+            //Console.WriteLine($"JsonFile: {data.JsonFile}");
+            //Console.WriteLine(data.JsonData);
+            //Console.WriteLine(data.TemplateFolder);
+            //Console.WriteLine(data.OutputFolder);
+            //Console.WriteLine(data.TransmissionsFiles[0]);
 
             try {
-                Output o = new Output();
+                Output ConsoleOutput = new();
+                ConsoleOutput.WriteGameTitel(data.JsonData.game.ToString());
+                SetData(data);
+                ConsoleOutput.WriteDataFound(data.JsonData);
 
-                o.WriteGameTitel();
-                SetVariablesFromJson();
-                o.WriteDataFound();
-                PressAnyKeyTo("continue",ConsoleColor.White);                
+                PressAnyKeyTo("continue",ConsoleColor.White);
 
-                foreach(var truck in jsonData.trucks) {
-                    foreach(var transmission in jsonData.transmissions) {
+                DeleteExistingFiles(data.OutputFolder);
+
+                foreach(var truck in data.JsonData.trucks) {
+                    foreach(var transmission in data.JsonData.transmissions) {
                         Console.Write($"{truck}: Added {transmission.name}\t");
-                        foreach(var differential_ratio in jsonData.differential_ratios) {
+                        foreach(var differential_ratio in data.JsonData.differential_ratios) {
+                            // read the template transmission file
+                            string siiFile = File.ReadAllText($@"{data.TemplateFolder}\{transmission.name}.sii");
+                            // replacing placeholder values in template transmission file with data from the json file
+                            siiFile = ModifySiiFile(siiFile,truck,transmission,differential_ratio);
 
-                            // Reads transmission template file (prepped with special strings)
-                            string siiFile = File.ReadAllText(templateFolder + @"\" + transmission.name + ".sii");
-
-                            // Replacing prepped special strings with actual data
-                            siiFile = siiFile.Replace("@name",transmission.name.ToString());
-                            siiFile = siiFile.Replace("@differential_ratio_name",differential_ratio.ToString().Replace(".",""));
-                            siiFile = siiFile.Replace("@truck",truck.ToString());
-                            siiFile = siiFile.Replace("@displayName",$"\"{transmission.displayName.ToString()}\"");
-                            siiFile = siiFile.Replace("@price",transmission.price.ToString());
-                            siiFile = siiFile.Replace("@unlock",transmission.unlock.ToString());
-                            siiFile = siiFile.Replace("@differential_ratio",differential_ratio.ToString());
-
-                            // setting new string variable to last folder where .sii files will be placed            
-                            string outputFolderFull = outputFolder + @"\def\vehicle\truck\" + truck.ToString() + @"\transmission\";
-                            // creates said directory, likely doesn't exist because all folders will be deleted in line ~40
+                            // setting string variable to truck transmission folder            
+                            string outputFolderFull = $@"{data.OutputFolder}\def\vehicle\truck\{truck.ToString()}\transmission";
+                            // creates said directory, likely doesn't exist because all folders will be deleted with DeleteExistingFiles();
                             Directory.CreateDirectory(outputFolderFull);
 
                             // setting file name
-                            string outputFile = outputFolderFull + transmission.name.ToString() + "." + differential_ratio.ToString().Replace(".","") + ".sii";
+                            string outputFile = $@"{outputFolderFull}\{transmission.name.ToString()}.{differential_ratio.ToString().Replace(".","")}.sii";
                             // writes file to folder
                             File.WriteAllText(outputFile,siiFile);
 
@@ -116,11 +137,11 @@ namespace TruckTransmissionGenerator {
                     Console.Write("\n");
                     Console.ForegroundColor = Output.RandomConsoleColor();
                 }
-                var totalCount = jsonData.trucks.Count * jsonData.transmissions.Count * jsonData.differential_ratios.Count;
+                var totalCount = data.JsonData.trucks.Count * data.JsonData.transmissions.Count * data.JsonData.differential_ratios.Count;
                 Console.ForegroundColor = ConsoleColor.DarkRed;
                 Console.WriteLine($"\nFinished! (Total: {totalCount})\n");
                 Console.ForegroundColor = ConsoleColor.White;
-
+                
                 PressAnyKeyTo("exit",ConsoleColor.DarkGreen);
             }
             catch(Exception e) {
@@ -131,32 +152,33 @@ namespace TruckTransmissionGenerator {
                 Environment.Exit(0);
             }
         }
-
-        public class Output {
+        class Output {
             private static Random _random = new Random();
             private static ConsoleColor GetRandomConsoleColor() {
                 var consoleColors = Enum.GetValues(typeof(ConsoleColor));
                 string[] c = new string[] { "ConsoleColor.DarkGreen","ConsoleColor.DarkRed" };
-
+        
                 return (ConsoleColor)consoleColors.GetValue(_random.Next(consoleColors.Length));
             }
             public static ConsoleColor RandomConsoleColor() {
                 return (ConsoleColor)new Random().Next(1,15);
             }
-            public void WriteGameTitel() {
+            public void WriteGameTitel(string gameTitle) {
                 Console.ResetColor();
                 Console.BackgroundColor = ConsoleColor.DarkRed; Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine($"\n {jsonData.game} \n");
+                Console.WriteLine($"\n {gameTitle} \n");
                 Console.ResetColor();
             }
-            public void WriteDataFound() {
+            public void WriteDataFound(dynamic data) {
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.WriteLine("\n---------");
-                Console.WriteLine("Found " + jsonData.trucks.Count + " trucks");
-                Console.WriteLine("Found " + jsonData.transmissions.Count + " transmissions");
-                Console.WriteLine("Found " + jsonData.differential_ratios.Count + " differential ratios");
-                Console.WriteLine("---------\n");
+                Console.WriteLine("\n---------------------------------");
+                Console.WriteLine($"| Found {data.trucks.Count} trucks\t\t|");
+                Console.WriteLine($"| Found {data.transmissions.Count} transmissions\t\t|");
+                Console.WriteLine($"| Found {data.differential_ratios.Count} differential ratios\t|");
+                Console.WriteLine("---------------------------------\n");
+                Console.ResetColor();
             }
+        
         }
     }
 }
